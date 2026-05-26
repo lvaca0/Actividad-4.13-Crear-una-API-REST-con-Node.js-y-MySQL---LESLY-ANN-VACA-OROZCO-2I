@@ -1,154 +1,195 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login de Usuarios</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body { background-color: rgb(182, 233, 255) !important; font-family: sans-serif; }
-    .card { border-radius: 10px; border-color: rgb(255, 188, 229); }
-    button { border-radius: 9px; background-color: rgb(112, 190, 216) !important; border-color: rgb(112, 183, 216) !important; }
-    button:hover { background-color: #d87070 !important; border-color: #d87070 !important; }
-  </style>
-</head> 
-<body class="bg-light">
-  <div class="container mt-5">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda API - Frontend</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { text-align: center; color: #2c3e50; }
+        
+        /* Formulario */
+        .form-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        
+        /* Botones */
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.3s; }
+        .btn-submit { background-color: #2ecc71; color: white; width: 100%; }
+        .btn-submit:hover { background-color: #27ae60; }
+        .btn-update { background-color: #3498db; color: white; display: none; width: 100%; }
+        .btn-edit { background-color: #f1c40f; color: white; margin-right: 5px; }
+        .btn-delete { background-color: #e74c3c; color: white; }
+        
+        /* Tabla */
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #ddd; }
+        th { background-color: #34495e; color: white; }
+        tr:hover { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
 
-    <div id="cabecera-autenticado" class="alert alert-light text-center fw-bold d-none shadow-sm mx-auto mb-4" style="max-width: 500px; border-left: 5px solid palevioletred;">
-      👤 Usuario: <span id="usuarioAutenticado" class="text-danger"></span>
+<div class="container">
+    <h1>📋 Gestión de Agenda (CRUD)</h1>
+
+    <div class="form-card">
+        <h3 id="form-title">Agregar Nuevo Registro</h3>
+        <input type="hidden" id="userId">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Nombre:</label>
+                <input type="text" id="nombre" placeholder="Ej. Ana Gómez">
+            </div>
+            <div class="form-group">
+                <label>Dirección:</label>
+                <input type="text" id="direccion" placeholder="Ej. Av. Sol #12">
+            </div>
+            <div class="form-group">
+                <label>Teléfono:</label>
+                <input type="text" id="telefono" placeholder="Ej. 1234567890">
+            </div>
+            <div class="form-group">
+                <label>Fecha de Nacimiento:</label>
+                <input type="date" id="fecha_nacimiento">
+            </div>
+        </div>
+        <button id="btnGuardar" class="btn btn-submit" onclick="guardarUsuario()">Guardar Registro</button>
+        <button id="btnActualizar" class="btn btn-update" onclick="actualizarUsuario()">Actualizar Registro</button>
     </div>
 
-    <div id="login-section" class="card p-4 mx-auto shadow" style="max-width:400px;">
-      <h4 class="mb-3 text-center">Iniciar Sesión</h4>
-      <div class="mb-3">
-        <label class="form-label">Usuario</label>
-        <input type="text" id="usuario" class="form-control">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Contraseña</label>
-        <input type="password" id="contrasena" class="form-control">
-      </div>
-      <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="recordar">
-        <label class="form-check-label">Recordarme</label>
-      </div>
-      <div class="d-grid gap-2">
-        <button class="btn btn-primary" onclick="autenticar()">Iniciar Sesión</button>
-        <button class="btn btn-secondary" onclick="mostrarRegistro()">Registrarse</button>
-      </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Dirección</th>
+                    <th>Teléfono</th>
+                    <th>Fecha Nac.</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaUsuarios">
+                </tbody>
+        </table>
     </div>
+</div>
 
-    <div id="registro-section" class="card p-4 mx-auto mt-5 d-none shadow" style="max-width:400px;">
-      <h4 class="mb-3 text-center">Registro de Usuario</h4>
-      <div class="mb-3">
-        <label class="form-label">Nombre Completo</label>
-        <input type="text" id="nombre" class="form-control">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Usuario</label>
-        <input type="text" id="nuevoUsuario" class="form-control">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Contraseña</label>
-        <input type="password" id="nuevaContrasena" class="form-control">
-      </div>
-      <div class="d-grid gap-2">
-        <button class="btn btn-success" onclick="registrar()">Registrar</button>
-        <button class="btn btn-outline-secondary" onclick="cancelarRegistro()">Cancelar</button>
-      </div>
-    </div>
+<script>
+    const API_URL = 'http://localhost:3000/usuarios';
 
-    <div id="usuarios-section" class="mt-5 d-none card p-4 shadow mx-auto" style="max-width: 600px; background-color: white;">
-      <h4 class="text-center mb-4">Listado de Usuarios</h4>
-      <div class="mb-3">
-        <label class="form-label fw-bold">🔍 Filtrar por nombre:</label>
-        <input type="text" id="filtro" class="form-control" placeholder="Escribe para buscar...">
-      </div>
-      <table class="table table-bordered mt-3">
-        <thead class="table-dark">
-          <tr><th>Nombre</th><th>Usuario</th><th>Contraseña</th></tr>
-        </thead>
-        <tbody id="tablaUsuarios"></tbody>
-      </table>
-      <div class="text-center mt-3">
-         <button class="btn btn-sm btn-secondary" onclick="cerrarSesion()">Cerrar Sesión</button>
-      </div>
-    </div>
-  </div>
+    // 1. OBTENER TODOS LOS REGISTROS (Read)
+    async function cargarUsuarios() {
+        try {
+            const response = await fetch(`${API_URL}?action=getAll`);
+            const usuarios = await response.json();
+            const tbody = document.getElementById('tablaUsuarios');
+            tbody.innerHTML = '';
 
-  <script>
-    const baseUrl = 'http://localhost:3000';
-    let usuariosGlobal = [];
-
-    window.onload = () => {
-      const u = localStorage.getItem('usuario');
-      const c = localStorage.getItem('contrasena');
-      if (u && c) {
-        document.getElementById('usuario').value = u;
-        document.getElementById('contrasena').value = c;
-        document.getElementById('recordar').checked = true;
-      }
-    };
-
-    function autenticar() {
-      const u = document.getElementById('usuario').value;
-      const c = document.getElementById('contrasena').value;
-      if (document.getElementById('recordar').checked) {
-        localStorage.setItem('usuario', u); localStorage.setItem('contrasena', c);
-      } else {
-        localStorage.removeItem('usuario'); localStorage.removeItem('contrasena');
-      }
-
-      fetch(`${baseUrl}/autenticar?usuario=${u}&contrasena=${c}`)
-        .then(res => res.text())
-        .then(msg => {
-          if (msg.includes("exitosa")) {
-            fetch(`${baseUrl}/listar`)
-              .then(res => res.json())
-              .then(data => {
-                usuariosGlobal = data;
-                const userObj = data.find(item => item.usuario === u);
-                document.getElementById('usuarioAutenticado').textContent = userObj ? userObj.nombre : u;
-                document.getElementById('cabecera-autenticado').classList.remove('d-none');
-                mostrarUsuarios();
-              });
-          } else { alert("Usuario o contraseña incorrectos"); }
-        }).catch(err => alert("Error: Verifica que el servidor (node servidor.js) esté encendido."));
+            usuarios.forEach(u => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${u.id}</td>
+                        <td>${u.nombre}</td>
+                        <td>${u.direccion}</td>
+                        <td>${u.telefono}</td>
+                        <td>${u.fecha_nacimiento}</td>
+                        <td>
+                            <button class="btn btn-edit" onclick="prepararEdicion(${u.id}, '${u.nombre}', '${u.direccion}', '${u.telefono}', '${u.fecha_nacimiento}')">Editar</button>
+                            <button class="btn btn-delete" onclick="eliminarUsuario(${u.id})">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch (error) {
+            console.error('Error al cargar usuarios:', error);
+        }
     }
 
-    function mostrarUsuarios() {
-      document.getElementById('login-section').classList.add('d-none');
-      document.getElementById('registro-section').classList.add('d-none');
-      document.getElementById('usuarios-section').classList.remove('d-none');
-      renderUsuarios(usuariosGlobal);
+    // 2. AGREGAR REGISTRO (Create)
+    async function guardarUsuario() {
+        const nombre = document.getElementById('nombre').value;
+        const direccion = document.getElementById('direccion').value;
+        const telefono = document.getElementById('telefono').value;
+        const fecha_nacimiento = document.getElementById('fecha_nacimiento').value;
+
+        if(!nombre || !direccion || !telefono || !fecha_nacimiento) return alert('Por favor, llena todos los campos');
+
+        try {
+            const url = `${API_URL}?action=add&nombre=${encodeURIComponent(nombre)}&direccion=${encodeURIComponent(direccion)}&telefono=${encodeURIComponent(telefono)}&fecha_nacimiento=${fecha_nacimiento}`;
+            await fetch(url);
+            limpiarFormulario();
+            cargarUsuarios();
+        } catch (error) {
+            alert('Error al guardar');
+        }
     }
 
-    function renderUsuarios(lista) {
-      const tabla = document.getElementById('tablaUsuarios');
-      tabla.innerHTML = '';
-      lista.forEach(u => {
-        tabla.innerHTML += `<tr><td>${u.nombre}</td><td>${u.usuario}</td><td>${u.contrasena}</td></tr>`;
-      });
+    // 3. PREPARAR EL FORMULARIO PARA EDITAR
+    function prepararEdicion(id, nombre, direccion, telefono, fecha) {
+        document.getElementById('userId').value = id;
+        document.getElementById('nombre').value = nombre;
+        document.getElementById('direccion').value = direccion;
+        document.getElementById('telefono').value = telefono;
+        document.getElementById('fecha_nacimiento').value = fecha;
+
+        document.getElementById('form-title').innerText = 'Editar Registro #' + id;
+        document.getElementById('btnGuardar').style.display = 'none';
+        document.getElementById('btnActualizar').style.display = 'block';
     }
 
-    document.getElementById('filtro').addEventListener('input', (e) => {
-      const texto = e.target.value.toLowerCase();
-      renderUsuarios(usuariosGlobal.filter(u => u.nombre.toLowerCase().includes(texto)));
-    });
+    // 4. ACTUALIZAR REGISTRO (Update)
+    async function actualizarUsuario() {
+        const id = document.getElementById('userId').value;
+        const nombre = document.getElementById('nombre').value;
+        const direccion = document.getElementById('direccion').value;
+        const telefono = document.getElementById('telefono').value;
+        const fecha_nacimiento = document.getElementById('fecha_nacimiento').value;
 
-    function registrar() {
-      const n = document.getElementById('nombre').value;
-      const u = document.getElementById('nuevoUsuario').value;
-      const c = document.getElementById('nuevaContrasena').value;
-      if (!n || !u || !c) return alert('Completa los campos');
-      fetch(`${baseUrl}/agregar?nombre=${n}&usuario=${u}&contrasena=${c}`)
-        .then(res => res.text()).then(msg => { alert(msg); cancelarRegistro(); });
+        try {
+            const url = `${API_URL}?action=update&id=${id}&nombre=${encodeURIComponent(nombre)}&direccion=${encodeURIComponent(direccion)}&telefono=${encodeURIComponent(telefono)}&fecha_nacimiento=${fecha_nacimiento}`;
+            await fetch(url);
+            
+            limpiarFormulario();
+            cargarUsuarios();
+        } catch (error) {
+            alert('Error al actualizar');
+        }
     }
 
-    function mostrarRegistro() { document.getElementById('login-section').classList.add('d-none'); document.getElementById('registro-section').classList.remove('d-none'); }
-    function cancelarRegistro() { document.getElementById('registro-section').classList.add('d-none'); document.getElementById('login-section').classList.remove('d-none'); }
-    function cerrarSesion() { location.reload(); }
-  </script>
+    // 5. ELIMINAR REGISTRO (Delete)
+    async function eliminarUsuario(id) {
+        if(confirm('¿Seguro que deseas eliminar este registro?')) {
+            try {
+                await fetch(`${API_URL}?action=delete&id=${id}`);
+                cargarUsuarios();
+            } catch (error) {
+                alert('Error al eliminar');
+            }
+        }
+    }
+
+    function limpiarFormulario() {
+        document.getElementById('userId').value = '';
+        document.getElementById('nombre').value = '';
+        document.getElementById('direccion').value = '';
+        document.getElementById('telefono').value = '';
+        document.getElementById('fecha_nacimiento').value = '';
+        
+        document.getElementById('form-title').innerText = 'Agregar Nuevo Registro';
+        document.getElementById('btnGuardar').style.display = 'block';
+        document.getElementById('btnActualizar').style.display = 'none';
+    }
+
+    // Cargar la lista automáticamente al abrir la página
+    window.onload = cargarUsuarios;
+</script>
+
 </body>
 </html>
