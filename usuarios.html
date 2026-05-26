@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login de Usuarios</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: rgb(182, 233, 255) !important; font-family: sans-serif; }
+    .card { border-radius: 10px; border-color: rgb(255, 188, 229); }
+    button { border-radius: 9px; background-color: rgb(112, 190, 216) !important; border-color: rgb(112, 183, 216) !important; }
+    button:hover { background-color: #d87070 !important; border-color: #d87070 !important; }
+  </style>
+</head> 
+<body class="bg-light">
+  <div class="container mt-5">
+
+    <div id="cabecera-autenticado" class="alert alert-light text-center fw-bold d-none shadow-sm mx-auto mb-4" style="max-width: 500px; border-left: 5px solid palevioletred;">
+      👤 Usuario: <span id="usuarioAutenticado" class="text-danger"></span>
+    </div>
+
+    <div id="login-section" class="card p-4 mx-auto shadow" style="max-width:400px;">
+      <h4 class="mb-3 text-center">Iniciar Sesión</h4>
+      <div class="mb-3">
+        <label class="form-label">Usuario</label>
+        <input type="text" id="usuario" class="form-control">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Contraseña</label>
+        <input type="password" id="contrasena" class="form-control">
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="recordar">
+        <label class="form-check-label">Recordarme</label>
+      </div>
+      <div class="d-grid gap-2">
+        <button class="btn btn-primary" onclick="autenticar()">Iniciar Sesión</button>
+        <button class="btn btn-secondary" onclick="mostrarRegistro()">Registrarse</button>
+      </div>
+    </div>
+
+    <div id="registro-section" class="card p-4 mx-auto mt-5 d-none shadow" style="max-width:400px;">
+      <h4 class="mb-3 text-center">Registro de Usuario</h4>
+      <div class="mb-3">
+        <label class="form-label">Nombre Completo</label>
+        <input type="text" id="nombre" class="form-control">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Usuario</label>
+        <input type="text" id="nuevoUsuario" class="form-control">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Contraseña</label>
+        <input type="password" id="nuevaContrasena" class="form-control">
+      </div>
+      <div class="d-grid gap-2">
+        <button class="btn btn-success" onclick="registrar()">Registrar</button>
+        <button class="btn btn-outline-secondary" onclick="cancelarRegistro()">Cancelar</button>
+      </div>
+    </div>
+
+    <div id="usuarios-section" class="mt-5 d-none card p-4 shadow mx-auto" style="max-width: 600px; background-color: white;">
+      <h4 class="text-center mb-4">Listado de Usuarios</h4>
+      <div class="mb-3">
+        <label class="form-label fw-bold">🔍 Filtrar por nombre:</label>
+        <input type="text" id="filtro" class="form-control" placeholder="Escribe para buscar...">
+      </div>
+      <table class="table table-bordered mt-3">
+        <thead class="table-dark">
+          <tr><th>Nombre</th><th>Usuario</th><th>Contraseña</th></tr>
+        </thead>
+        <tbody id="tablaUsuarios"></tbody>
+      </table>
+      <div class="text-center mt-3">
+         <button class="btn btn-sm btn-secondary" onclick="cerrarSesion()">Cerrar Sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const baseUrl = 'http://localhost:3000';
+    let usuariosGlobal = [];
+
+    window.onload = () => {
+      const u = localStorage.getItem('usuario');
+      const c = localStorage.getItem('contrasena');
+      if (u && c) {
+        document.getElementById('usuario').value = u;
+        document.getElementById('contrasena').value = c;
+        document.getElementById('recordar').checked = true;
+      }
+    };
+
+    function autenticar() {
+      const u = document.getElementById('usuario').value;
+      const c = document.getElementById('contrasena').value;
+      if (document.getElementById('recordar').checked) {
+        localStorage.setItem('usuario', u); localStorage.setItem('contrasena', c);
+      } else {
+        localStorage.removeItem('usuario'); localStorage.removeItem('contrasena');
+      }
+
+      fetch(`${baseUrl}/autenticar?usuario=${u}&contrasena=${c}`)
+        .then(res => res.text())
+        .then(msg => {
+          if (msg.includes("exitosa")) {
+            fetch(`${baseUrl}/listar`)
+              .then(res => res.json())
+              .then(data => {
+                usuariosGlobal = data;
+                const userObj = data.find(item => item.usuario === u);
+                document.getElementById('usuarioAutenticado').textContent = userObj ? userObj.nombre : u;
+                document.getElementById('cabecera-autenticado').classList.remove('d-none');
+                mostrarUsuarios();
+              });
+          } else { alert("Usuario o contraseña incorrectos"); }
+        }).catch(err => alert("Error: Verifica que el servidor (node servidor.js) esté encendido."));
+    }
+
+    function mostrarUsuarios() {
+      document.getElementById('login-section').classList.add('d-none');
+      document.getElementById('registro-section').classList.add('d-none');
+      document.getElementById('usuarios-section').classList.remove('d-none');
+      renderUsuarios(usuariosGlobal);
+    }
+
+    function renderUsuarios(lista) {
+      const tabla = document.getElementById('tablaUsuarios');
+      tabla.innerHTML = '';
+      lista.forEach(u => {
+        tabla.innerHTML += `<tr><td>${u.nombre}</td><td>${u.usuario}</td><td>${u.contrasena}</td></tr>`;
+      });
+    }
+
+    document.getElementById('filtro').addEventListener('input', (e) => {
+      const texto = e.target.value.toLowerCase();
+      renderUsuarios(usuariosGlobal.filter(u => u.nombre.toLowerCase().includes(texto)));
+    });
+
+    function registrar() {
+      const n = document.getElementById('nombre').value;
+      const u = document.getElementById('nuevoUsuario').value;
+      const c = document.getElementById('nuevaContrasena').value;
+      if (!n || !u || !c) return alert('Completa los campos');
+      fetch(`${baseUrl}/agregar?nombre=${n}&usuario=${u}&contrasena=${c}`)
+        .then(res => res.text()).then(msg => { alert(msg); cancelarRegistro(); });
+    }
+
+    function mostrarRegistro() { document.getElementById('login-section').classList.add('d-none'); document.getElementById('registro-section').classList.remove('d-none'); }
+    function cancelarRegistro() { document.getElementById('registro-section').classList.add('d-none'); document.getElementById('login-section').classList.remove('d-none'); }
+    function cerrarSesion() { location.reload(); }
+  </script>
+</body>
+</html>
