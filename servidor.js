@@ -1,44 +1,82 @@
-const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const cors = require('cors');
-
 const app = express();
-const port = 3000;
-
 app.use(cors());
+app.use(express.json());
 
-// Conectar a la base de datos (se crea automáticamente)
-const db = new sqlite3.Database('usuarios.db');
+// CONEXIÓN CORREGIDA: Usamos comillas invertidas para el nombre con espacios
+// CONEXIÓN CORREGIDA: Sin comillas invertidas adentro, solo el texto plano
+const sequelize = new Sequelize('agenda de lesly', 'root', '', {
+    host: 'localhost',
+    dialect: 'mysql'
+});
 
-// Crear la tabla necesaria
-db.run("CREATE TABLE IF NOT EXISTS usuarios (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, usuario TEXT, contrasena TEXT)");
+// Definición del modelo adaptado a tu tabla 'contactos'
+const Contacto = sequelize.define('contactos', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    nombre: { type: DataTypes.STRING },
+    direccion: { type: DataTypes.STRING },
+    telefono: { type: DataTypes.STRING },
+    fecha_nacimiento: { type: DataTypes.DATEONLY }
+}, {
+    tableName: 'contactos', // Tu tabla real
+    timestamps: false
+});
 
-// Ruta para agregar usuarios
-app.get('/agregar', (req, res) => {
-    const { nombre, usuario, contrasena } = req.query;
-    db.run("INSERT INTO usuarios (nombre, usuario, contrasena) VALUES (?, ?, ?)", [nombre, usuario, contrasena], (err) => {
-        if (err) res.status(500).send('Error al agregar');
-        else res.send('Usuario agregado exitosamente');
+// Ruta principal tipo "Multi-acción" mediante GET
+app.get('/usuarios', async (req, res) => {
+    const { action } = req.query;
+
+    try {
+        switch (action) {
+            case 'getAll':
+                const usuarios = await Contacto.findAll();
+                return res.json(usuarios);
+
+            case 'add':
+                const { nombre, direccion, telefono, fecha_nacimiento } = req.query;
+                if (!nombre || !direccion || !telefono || !fecha_nacimiento) {
+                    return res.status(400).json({ error: 'Faltan parámetros para agregar' });
+                }
+                const nuevo = await Contacto.create({ nombre, direccion, telefono, fecha_nacimiento });
+                return res.json({ message: 'Usuario agregado', usuario: nuevo });
+
+            case 'update':
+                const { id, nombre: nomU, direccion: dirU, telefono: telU, fecha_nacimiento: fnU } = req.query;
+                if (!id || !nomU || !dirU || !telU || !fnU) {
+                    return res.status(400).json({ error: 'Faltan parámetros para actualizar' });
+                }
+                const actualizado = await Contacto.update(
+                    { nombre: nomU, direccion: dirU, telefono: telU, fecha_nacimiento: fnU },
+                    { where: { id } }
+                );
+                return res.json({ message: 'Usuario actualizado', resultado: actualizado });
+
+            case 'delete':
+                const idEliminar = req.query.id;
+                if (!idEliminar) {
+                    return res.status(400).json({ error: 'Falta el id para eliminar' });
+                }
+                await Contacto.destroy({ where: { id: idEliminar } });
+                return res.json({ message: 'Usuario eliminado' });
+
+            default:
+                return res.status(400).json({ error: 'Acción no válida' });
+        }
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Arrancar el servidor
+sequelize.authenticate()
+    .then(() => {
+        console.log('🚀 Conectado exitosamente a la base de datos de Lesly.');
+        return sequelize.sync();
+    })
+    .then(() => {
+        app.listen(3000, () => {
+            console.log('🔥 Servidor corriendo en http://localhost:3000');
+        });
+    })
+    .catch(err => {
+        console.error('❌ Error al conectar:', err);
     });
-});
-
-// Ruta para listar usuarios
-app.get('/listar', (req, res) => {
-    db.all("SELECT nombre, usuario, contrasena FROM usuarios", (err, rows) => {
-        if (err) res.status(500).send('Error');
-        else res.json(rows);
-    });
-});
-
-// Ruta para autenticar
-app.get('/autenticar', (req, res) => {
-    const { usuario, contrasena } = req.query;
-    db.get("SELECT * FROM usuarios WHERE usuario = ? AND contrasena = ?", [usuario, contrasena], (err, row) => {
-        if (row) res.send('Autenticación exitosa');
-        else res.send('Usuario no encontrado');
-    });
-});
-
-app.listen(port, () => {
-    console.log(`Servidor API escuchando en http://localhost:${port}`);
-});
